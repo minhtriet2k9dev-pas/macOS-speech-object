@@ -1,3 +1,3 @@
 # macOS-speech-object
 
-### a class allow using sepak option on macOS
+### A class allow using speak option on macOS
