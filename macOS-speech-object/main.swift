@@ -2,19 +2,17 @@ import Foundation
 
 class macOSSpeechObject {
     private var voiceList: String
-    private var speed: Int
+    private var rate: Int
     private var specifiedVoice: String
-    private var repeatAnswer: Bool
     private var status: String
     private var error: String
 
-    init(voiceList: String = "", speed: Int = 180, specifiedVoice: String = "alex", repeatAnswer: Bool = false) {
-        status = "Wait for setup"
+    init(voiceList: String = "", rate: Int = 180, specifiedVoice: String = "", repeatAnswer: Bool = false) {
+        status = "Wait for initSpeakingMode"
         error = ""
         self.voiceList = voiceList
-        self.speed = speed
+        self.rate = rate
         self.specifiedVoice = specifiedVoice
-        self.repeatAnswer = repeatAnswer
     }
 
     private func execute(command: String, args: [String]) -> String {
@@ -33,50 +31,46 @@ class macOSSpeechObject {
         return output
     }
 
-    private func say(_ strings: [String]) -> String {
-        if status == "Wait for setup" {
-            return "ERROR #1 : You haven't setup yet"
+    private func speak(_ strings: [String]) -> String {
+        if status == "Wait for initSpeakingMode" {
+            return "ERROR #1 : You haven't initSpeakingMode yet"
         }
         var str = strings
         str.append("-v")
         str.append(specifiedVoice)
         str.append("-r")
-        str.append(String(speed))
+        str.append(String(rate))
         if voiceList != "" {
-            status = "say " + strings.joined(separator: " ")
+            status = "speak " + strings.joined(separator: " ")
             return execute(command: "/usr/bin/say", args: str)
         } else {
             return "ERROR #2 : Empty Voice List"
         }
     }
 
-    func setup(canSay: Bool = false, string: String = "hi there") -> Bool {
+    func initSpeakingMode(canSay: Bool = false, string: String = "hi there") -> Bool {
         if !FileManager.default.fileExists(atPath: "/usr/bin/say") {
             return false
         }
         if canSay {
-            _ = say([string])
+            _ = speak([string])
         }
-        voiceList = say(["-v", "?"])
+        voiceList = speak(["-v", "?"])
         if voiceList == "" {
             return false
         }
-        status = "Finish setup"
+        status = "Finish initSpeakingMode"
         return true
     }
 
-    func speak(_ str: String) {
-        _ = say([str])
-    }
-
-    func getInput(_ prompt: String) {
-        print(prompt)
-        speak(prompt)
-        if let command = readLine() {
-            if repeatAnswer {
-                speak("you enter " + command)
-            }
-        }
+    func say(_ str: String, withrate: Int = 180, withVoice: String = "") {
+        let lastrate = rate
+        let lastVoice = withVoice
+        setSpeakingrate(to: withrate)
+        setSpecifiedVoice(to: withVoice)
+        _ = speak([str])
+        setSpeakingrate(to: lastrate)
+        setSpecifiedVoice(to: lastVoice)
     }
 
     // setter
@@ -84,16 +78,12 @@ class macOSSpeechObject {
         voiceList = with
     }
 
-    func setSpeakSpeed(to: Int) {
-        speed = to
+    func setSpeakingrate(to: Int) {
+        rate = to
     }
 
     func setSpecifiedVoice(to: String) {
         specifiedVoice = to
-    }
-
-    func setRepeatAnswer(to: Bool) {
-        repeatAnswer = to
     }
 
     // getter
@@ -101,27 +91,27 @@ class macOSSpeechObject {
         return voiceList
     }
 
-    func getSpeackSpeed() -> Int {
-        return speed
+    func getSpeackrate() -> Int {
+        return rate
     }
 
     func getSpecifiedVoice() -> String {
         return specifiedVoice
     }
 
-    func getRepeatAnswer() -> Bool {
-        return repeatAnswer
-    }
-
     func getError() -> String {
         return error
     }
-
+    
+    func getStatus() -> String {
+        return status
+    }
+    
     // explain the errors
     func explainError(withCode: Int) -> String {
         switch withCode {
         case 1:
-            return "You need to setup to using the speak() function, the setup() function will looking for the voice list on your device so that you can choose a specified voice to speak"
+            return "You need to initSpeakingMode to using the speak() function, the initSpeakingMode() function will looking for the voice list on your device so that you can choose a specified voice to speak"
         case 2:
             return "This happen when the program cannot find any voice that have installed on your devices, please check it"
         default:
@@ -129,3 +119,8 @@ class macOSSpeechObject {
         }
     }
 }
+
+var me = macOSSpeechObject()
+
+_ = me.initSpeakingMode()
+me.say("Hello",withVoice: "victoria")
